@@ -1,0 +1,75 @@
+---
+title: "Lab 01 - Isabela Diniz Cia"
+author: "Isabela Diniz Cia"
+format: pdf
+editor: visual
+---
+
+# Laboratório 01
+
+## Importação e Manipulação de Dados em R
+
+1.  Carregue o pacote `tidyverse`
+
+```{r}
+install.packages('tidyverse')
+```
+
+2.  Apresente os bancos de dados `table1`, `table2`, `table3`, `table4a` e `table4b`, distribuídos juntamente com o pacote `tidyverse`. Para cada banco de dados, descreva textualmente se ele está no formato tidy e justifique cada uma de suas respostas.
+
+```{r}
+tidyr::table1
+tidyr::table2
+tidyr::table3
+tidyr::table4a
+tidyr::table4b
+```
+
+-   **Resposta:** O formato *tidy* possui como característica organizar a tabela de modo que cada coluna corresponda a uma variável, cada linha represente uma observação e cada célula contenha apenas um único valor.
+
+    Ao analisar os conjuntos de dados `table1`, `table2`, `table3`, `table4a` e `table4b`, observamos que a **`table1`** está no formato *tidy*, pois cada variável contempla uma coluna, resultando em uma tabela no formato longo. A **`table2`**, por sua vez, apresenta na coluna `type` dois valores distintos (`cases` e `population`), que correspondem a duas variáveis diferentes e deveriam estar separadas. Na **`table3`**, a coluna `rate` não está no formato *tidy* porque cada célula armazena duas informações simultaneamente. Por fim, nas tabelas **`table4a`** e **`table4b`**, os anos de 1999 e 2000 figuram como colunas, quando na verdade deveriam ser agrupados para formar uma nova coluna referente à variável `ano`.
+
+3.  Utilizando comandos do pacote dplyr, determine a taxa de ocorrência de tuberculose para cada 10.000 pessoas. Armazene o resultado em um objeto chamado taxas.
+
+```{r}
+library(dplyr)
+
+taxas <- tidyr::table1 %>%
+  mutate(taxa = (cases / population) * 10000)
+
+taxas
+```
+
+4.  Apresente, utilizando comandos do pacote `dplyr`, o número de casos de tuberculose por ano.
+
+```{r}
+casos_por_ano <- tidyr::table1 %>%
+  group_by(year) %>%
+  summarise(total_casos = sum(cases))
+
+casos_por_ano
+```
+
+5.  Apresente, utilizando comandos do pacote `dplyr`, o número de casos de tuberculose identificados em cada país.
+
+```{r}
+casos_por_pais <- tidyr::table1 %>%
+  group_by(country) %>%
+  summarise(total_pais = sum(cases))
+
+casos_por_pais
+```
+
+6.  Utilizando comandos do pacote `dplyr`, apresente uma tabela que descreva a mudança no número de casos, em cada país, ao longo dos anos de 1999 e 2000.
+
+```{r}
+library(tidyr)
+mudanca_casos <- table1 %>%
+  select(country, year, cases) %>%
+  pivot_wider(names_from = year, values_from = cases, names_prefix = "casos_") %>%
+  mutate(diferenca = casos_2000 - casos_1999)
+
+mudanca_casos
+```
+
+7.  Apresente um gráfico de linhas, preparado via ggplot2, apresentando a mudança na taxa de casos (por 10.000 habitantes) estratificado por país.

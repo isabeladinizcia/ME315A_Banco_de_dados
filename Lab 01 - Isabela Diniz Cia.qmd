@@ -7,12 +7,12 @@ editor: visual
 
 # Laboratório 01
 
-## Importação e Manipulação de Dados em R
+## Manipulação de Dados no Formato Tidy
 
 1.  Carregue o pacote `tidyverse`
 
 ```{r}
-install.packages('tidyverse')
+library('tidyverse')
 ```
 
 2.  Apresente os bancos de dados `table1`, `table2`, `table3`, `table4a` e `table4b`, distribuídos juntamente com o pacote `tidyverse`. Para cada banco de dados, descreva textualmente se ele está no formato tidy e justifique cada uma de suas respostas.
@@ -73,3 +73,135 @@ mudanca_casos
 ```
 
 7.  Apresente um gráfico de linhas, preparado via ggplot2, apresentando a mudança na taxa de casos (por 10.000 habitantes) estratificado por país.
+
+```{r}
+library(ggplot2)
+
+ggplot(taxas, aes(x = year, y = taxa, color = country)) +
+  geom_line() +
+  geom_point() +
+  labs(title = 'Taxa de Tuberculose por Pais',
+       x = 'Ano', y = 'Taxa (por 10.000 hab.)')
+```
+
+8.  Calcule a taxa para as tabelas `table2` e `table4a+table4b`. Para isso, você precisará executar 4 passos:
+
+    -   Extrair o número de casos de tuberculose por país, por ano;
+
+    -   Extrair o tamanho da população correspondente, por ano;
+
+    -   Dividir o número de casos pelo tamanho da população e multiplicar o resultado por 10.000;
+
+    -   Armazenar o resultado numa variável apropriada;
+
+**Taxa `table2`**
+
+```{r}
+# Realizando o procedimento na table2
+
+# Extrair o número de casos de tuberculose por país, por ano
+casos_table2 <- table2 %>%
+  filter(type == 'cases') %>%
+  rename(cases = count)
+
+
+# Extrair o tamanho da população correspondente, por ano
+populacao_table2 <- table2 %>%
+  filter(type == 'population') %>%
+  rename(population = count)
+populacao_table2
+
+# Dividir o número de casos pelo tamanho da população e multiplicar o resultado por 10.000
+taxa_table2 <- table2 %>%
+  pivot_wider(names_from = type, values_from = count) %>%
+  mutate(taxa = (cases / population) * 10000)
+
+#Armazenar o resultado numa variável apropriada
+taxa_table2
+
+```
+
+**Taxa `table4a + table4b`**
+
+```{r}
+# Realizando o procedimento na table4a+table4b
+# Extrair o número de casos de tuberculose por país, por ano
+casos_table4 <- table4a %>%
+  pivot_longer(cols = -country, names_to = "year", values_to = "cases") 
+
+# Extrair o tamanho da população correspondente, por ano
+populacao_table4 <- table4b %>%
+  pivot_longer(cols = -country, names_to = "year", values_to = "population")
+
+# Dividir o número de casos pelo tamanho da população e multiplicar o resultado por 10.000
+# Armazenar o resultado numa variável apropriada
+taxa_table4 <- casos_table4 %>%
+  left_join(populacao_table4, by = c("country", "year")) %>%
+  mutate(taxa = (cases / population) * 10000)
+
+taxa_table4
+
+```
+
+9.  Refaça o gráfico da questão 7 para os dados apresentados em `table2`.
+
+```{r}
+library(ggplot2)
+
+taxa_table2 %>%
+  ggplot(aes(x = year, y = taxa, color = country)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Mudanca na Taxa de Tuberculose por Pais (1999-2000)",
+    x = "Ano",
+    y = "Taxa (casos por 10.000 habitantes)")
+```
+
+10. Utilizando o comando `pivot_longer`, transforme `table4a` em um objeto no formato tidy. Armazene o resultado num objeto chamado `tidy4a`.
+
+```{r}
+tidy4a <- table4a %>%
+  pivot_longer(cols = -country, names_to = "year", values_to = "cases")
+
+tidy4a
+```
+
+11. Refaça o item 10 para o objeto `table4b`. Armazene o resultado num objeto chamado `tidy4b`.
+
+```{r}
+tidy4b <- table4b %>%
+  pivot_longer(cols = -country, names_to = "year", values_to = "population")
+
+tidy4b
+```
+
+12. Combine os objetos `tidy4a` e `tidy4b` em um único objeto, utilizando o comando `left_join`. Apresente uma explicação textual sobre o que faz o referido comando.
+
+```{r}
+table4 <- tidy4a %>%
+  left_join(tidy4b, by = c("country", "year"))
+
+table4
+```
+
+13. Use o comando `pivot_wider` para tranformar o objeto `table2` em um objeto com formato tidy.
+
+```{r}
+tidy2 <- table2 %>%
+  pivot_wider(names_from = type, values_from = count)
+
+tidy2
+```
+
+14. Observe que a coluna `rate` do objeto `table3` é um texto mostrando a fração que formaria a taxa de casos de tuberculose. Transforme o objeto `table3` em um objeto com formato tidy separando a coluna 3 em duas outras colunas: `cases` e `population`, utilizando o comando `separate`. Utilize o argumento `convert` para transformar o resultado em um objeto numérico.
+
+```{r}
+tidy3 <- table3 %>%
+  separate(rate, 
+           into = c('cases', 'population'),
+           sep = '/',
+           convert = TRUE)
+
+tidy3
+```

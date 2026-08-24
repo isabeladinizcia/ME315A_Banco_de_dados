@@ -157,13 +157,10 @@ cUS = baseCalendario(resultado_final, "US")
 ```
 
 ```{r}
-cAA + pal + ggtitle("American Airlines (AA)")
-
-cDL + pal + ggtitle("Delta Airlines (DL)")
-
-cUA + pal + ggtitle("United Airlines (UA)")
-
-cUS + pal + ggtitle("US Airways (US)")
+cAA + pal + ggtitle("Companhia AA")
+cDL + pal + ggtitle("Companhia DL")
+cUA + pal + ggtitle("Companhia UA")
+cUS + pal + ggtitle("Companhia US")
 ```
 
 ### Horário de conclusão

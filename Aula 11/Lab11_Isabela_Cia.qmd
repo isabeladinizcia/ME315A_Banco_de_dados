@@ -1,0 +1,169 @@
+---
+title: "Visualização de Dados com plotnine"
+author: "Isabela Diniz Cia"
+format: pdf
+editor: source
+---
+
+
+```{r setup, include=FALSE}
+library(reticulate)
+py_require(c("plotnine", "pandas", "polars", "scipy", "statsmodels"))
+```
+
+
+## Questão 1
+
+**Importe o conjunto de dados `diamonds`, cujo arquivo está disponível no website da disciplina.**
+
+```{python}
+import pandas as pd
+import polars as pl
+from plotnine import ggplot, aes, geom_point, geom_smooth, labs, theme_minimal
+from plotnine.data import diamonds
+
+# Teste para confirmar o carregamento do dataset
+diamonds.head()
+```
+
+```{python}
+print(f"Dimensões do dataset: {diamonds.shape[0]} linhas e {diamonds.shape[1]} colunas.")
+```
+
+## Questão 2
+
+**Crie uma visualização de dados que descreva a associação existente entre as variáveis peso (`carat`) e preço (`price`). Que ações você tomou para garantir que você produziu um gráfico de boa qualidade? Escreva um parágrafo comunicando os seus achados.**
+
+```{python}
+from plotnine import (ggplot, aes, geom_point, geom_smooth, labs, theme_minimal,
+                      scale_x_log10, scale_y_log10)
+
+p1 = (
+    ggplot(diamonds, aes(x="carat", y="price"))
+    + geom_point(alpha=0.1, size=0.8, color="#1f4e79")
+    + geom_smooth(method="lm", color="#c0392b", se=True)
+    + scale_x_log10(breaks=[0.2, 0.5, 1, 2, 5])
+    + scale_y_log10(
+        breaks=[500, 1000, 2000, 5000, 10000, 20000],
+        labels=lambda l: [f"US$ {v:,.0f}" for v in l],
+    )
+    + labs(
+        title="Relação entre peso e preço de diamantes",
+        subtitle="Escalas logarítmicas; reta de regressão linear em vermelho",
+        x="Peso (quilates, escala log)",
+        y="Preço (US$, escala log)",
+    )
+    + theme_minimal()
+)
+
+p1.show()
+```
+**Ações para garantir um gráfico de boa qualidade:**
+
+- Usei transparência (`alpha=0.1`) e pontos pequenos, porque com 53.940 observações os pontos se sobrepõem muito e escondem a densidade.
+- Apliquei escala logarítmica nos dois eixos. Tanto `carat` quanto `price`, na escala log a relação fica aproximadamente linear e a variabilidade mais homogênea.
+- Adicionei uma curva de ajuste para destacar a tendência.
+- Coloquei título, subtítulo, rótulos com unidades e indicação das escalas, e formatei o preço em dólares legíveis nos eixos.
+- Usei `theme_minimal()` e cores sóbrias, sem elementos que não carreguem informação.
+
+**Achados no gráfico**
+
+O gráfico evidencia uma associação positiva entre o peso (`carat`) e o preço (`price`) dos diamantes: em geral, diamantes mais pesados apresentam preços mais elevados. Na escala log-log, essa associação apresenta um comportamento aproximadamente linear, sugerindo uma relação de potência entre as variáveis. Também é possível observar maior dispersão dos preços para diamantes de maior peso, indicando que o peso, isoladamente, não explica toda a variação dos preços. Além disso, há concentrações de observações em determinados valores de quilates.
+
+## Questão 3
+
+**A relação identificada na questão anterior é a mesma relação presente nos diferentes cortes de diamantes? Crie uma visualização que demonstre seus achados eficientemente. Descreva sua conclusão em um parágrafo.**
+
+```{python}
+from plotnine.data import diamonds
+from plotnine import (ggplot, aes, geom_point, geom_smooth, labs, theme_minimal,
+                      scale_x_log10, scale_y_log10, facet_wrap, theme)
+
+p2 = (
+    ggplot(diamonds, aes(x="carat", y="price"))
+    + geom_point(alpha=0.58, size=0.4, color="#1f4e79")
+    + geom_smooth(method="lm", color="black", se=False)
+    + facet_wrap("cut", nrow=2)
+    + scale_x_log10(breaks=[0.2, 0.5, 1, 2, 5])
+    + scale_y_log10(
+        breaks=[500, 2000, 5000, 15000],
+        labels=lambda l: [f"US$ {v:,.0f}" for v in l],
+    )
+    + labs(
+        title="Relação Preço vs Peso por Qualidade de Corte (Cut)",
+        subtitle="Separação em painéis paralelos por categoria de corte",
+        x="Peso em Quilates (Carat, escala log)",
+        y="Preço em USD (Escala Log10)",
+    )
+    + theme_minimal()
+    + theme(figure_size=(10, 6))
+)
+
+p2.show()
+```
+
+
+**Conclusão sobre o gráfico**
+
+A associação positiva entre peso e preço se mantém nas diferentes categorias de corte. Em todos os painéis, observa-se uma tendência crescente, aproximadamente linear na escala log-log. Entretanto, a distribuição dos preços e a dispersão das observações variam entre as categorias. Portanto, embora o peso esteja associado ao preço em todos os tipos de corte, o gráfico não permite afirmar, isoladamente, que a influência do corte seja pequena ou que o peso seja o principal determinante do preço.
+
+
+## Questão 4
+
+**Crie uma visualização que mostre a relação entre preço e peso do diamante, considerando as diferentes combinações de qualidade de corte, cor e clareza do diamante. Quais foram as dificuldades encontradas? A relação entre preço e peso é a mesma para diferentes configurações de diamantes?**
+
+```{python}
+from plotnine.data import diamonds
+from plotnine import (ggplot, aes, geom_point, geom_smooth, labs, theme_minimal,
+                      scale_x_log10, scale_y_log10, scale_color_brewer,
+                      facet_grid, theme)
+
+# Número de diamantes em cada combinação de corte, cor e clareza
+chaves = ["cut", "color", "clarity"]
+contagem = diamonds.groupby(chaves, observed=True).size().reset_index(name="n")
+
+# Mantém só combinações com pelo menos 10 diamantes (retas com poucos pontos são instáveis)
+d3 = diamonds.merge(contagem, on=chaves)
+d3 = d3[d3["n"] >= 10]
+
+p3 = (
+    ggplot(d3, aes(x="carat", y="price", color="cut"))
+    + geom_point(color="lightgrey", alpha=0.05, size=0.4)
+    + geom_smooth(method="lm", se=False, size=0.7)
+    + facet_grid("clarity ~ color")
+    + scale_x_log10(breaks=[0.3, 1, 3])
+    + scale_y_log10(
+        breaks=[1000, 5000, 15000],
+        labels=lambda l: [f"{v/1000:.0f} mil" for v in l],
+    )
+    + scale_color_brewer(type="qual", palette="Set1")
+    + labs(
+        title="Relação entre peso e preço por cor, clareza e corte",
+        subtitle= ("Colunas: cor (D = melhor, J = pior);"
+        "linhas: clareza; retas coloridas por corte"
+        ),
+        x="Peso (quilates, escala log)",
+        y="Preço (USD, escala log)",
+        color="Corte",
+    )
+    + theme_minimal()
+    + theme(figure_size=(12, 9), legend_position="bottom")
+)
+
+p3.show()
+```
+
+**Dificuldades encontradas**
+
+O principal desafio foi a grande quantidade de combinações entre corte, cor e clareza, que resulta em muitos painéis e dificulta a leitura do gráfico. Além disso, o conjunto de dados apresenta quantidades diferentes de observações entre as combinações, de modo que alguns grupos possuem poucos dados para o ajuste de retas de regressão. Para reduzir a presença de grupos muito pequenos, foram mantidas apenas as combinações com pelo menos 10 observações. Também foram utilizadas escalas logarítmicas, transparência nos pontos e cores distintas para representar as categorias de corte, buscando equilibrar a quantidade de informação e a legibilidade.
+
+**Conclusão**
+
+A relação entre peso e preço permanece positiva nas diferentes combinações de corte, cor e clareza. Entretanto, os níveis de preço, a dispersão das observações e as inclinações das retas variam entre os painéis, sugerindo que essas características estão associadas a diferenças nos preços. Embora a tendência crescente seja observada nas diferentes configurações, a relação não é exatamente igual em todos os grupos. O gráfico permite identificar esses padrões, mas não é suficiente para determinar qual característica exerce a maior influência sobre o preço.
+
+# Horário
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
